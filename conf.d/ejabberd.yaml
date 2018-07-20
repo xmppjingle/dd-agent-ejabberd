@@ -1,5 +1,6 @@
 init_config:
   verbose: False
+  connected_users: True
 
 instances:
   - url: 'http://HOST:PORT/api'
