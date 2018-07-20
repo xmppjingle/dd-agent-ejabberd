@@ -7,6 +7,11 @@
 from checks import AgentCheck
 from requests import post
 
+def get_connected_users(url, auth):
+    res = post(url + '/connected_users', '{}', auth=auth)
+    obj = res.json()
+    return obj
+
 def get_stats(url, name, auth):
     data = '{"name":"%s"}' % (name)
     res = post(url + '/stats', data, auth=auth)
@@ -36,6 +41,9 @@ class EjabberdCheck(AgentCheck):
         else:
             auth = None
         try:
+            res = get_connected_users(instance['url'], auth)
+            for user in res:
+                self.gauge('ejabberd.connected_' + user, 1)
             res = get_stats(instance['url'], 'registeredusers', auth)
             self.gauge('ejabberd.registeredusers', res)
             res = get_stats(instance['url'], 'onlineusers', auth)
@@ -47,7 +55,7 @@ class EjabberdCheck(AgentCheck):
             res = get_incoming_s2s_number(instance['url'], auth)
             self.gauge('ejabberd.s2s_incoming', res)
             res = get_outgoing_s2s_number(instance['url'], auth)
-            self.gauge('ejabberd.s2s_outgoing', res)
+            self.gauge('ejabberd.s2s_outgoing', res)  
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
         except Exception as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
