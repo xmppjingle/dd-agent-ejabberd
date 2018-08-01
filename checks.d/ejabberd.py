@@ -7,6 +7,11 @@
 from checks import AgentCheck
 from requests import post
 
+def get_connected_users(url, auth, headers):
+    res = post(url + '/connected_users', '{}', auth=auth, headers=headers)
+    obj = res.json()
+    return obj
+
 def get_stats(url, name, auth, headers):
     data = '{"name":"%s"}' % (name)
     res = post(url + '/stats', data, auth=auth, headers=headers)
@@ -31,12 +36,17 @@ class EjabberdCheck(AgentCheck):
 
     def check(self, instance):
         verbose = self.init_config.get('verbose', False)
+        connected_users = self.init_config.get('connected_users', False)
         if 'jid' in instance and 'password' in instance:
             auth = (instance['jid'], instance['password'])
         else:
             auth = None
         try:
             headers = {'X-Admin' : 'true'}
+            if connected_users:
+              res = get_connected_users(instance['url'], auth, headers)
+              for user in res:
+                self.gauge('ejabberd.connected_' + user, 1)
             res = get_stats(instance['url'], 'registeredusers', auth, headers)
             self.gauge('ejabberd.registeredusers', res)
             res = get_stats(instance['url'], 'onlineusers', auth, headers)
